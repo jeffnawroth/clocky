@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"my-mcp-server-a7184064": {
+			"url": "https://developers.raycast.com/~gitbook/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}
