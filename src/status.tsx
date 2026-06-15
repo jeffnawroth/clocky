@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { MenuBarExtra, Icon } from "@raycast/api";
 import { getSessions, getTargetConfig, getVacationDays } from "./storage";
-import { dayKey, formatDelta, getActiveSession, getDaySummary, isSessionPaused, msToClock } from "./utils";
+import {
+  dayKey,
+  formatDelta,
+  formatTimeAt,
+  getActiveSession,
+  getDaySummary,
+  getEstimatedWorkEnd,
+  isSessionPaused,
+  msToClock,
+} from "./utils";
 import { Session } from "./types";
 
 export default function Command() {
@@ -36,6 +45,8 @@ export default function Command() {
   const netMs = totals.net;
   const icon = status === "working" ? Icon.Play : status === "paused" ? Icon.Pause : Icon.Circle;
   const isVacation = vacationDays.includes(dayKey(now));
+  const targetMs = isVacation ? 0 : targetHours * 3600 * 1000;
+  const workEnd = status === "working" ? getEstimatedWorkEnd(now, netMs, targetMs, isVacation) : null;
   const title =
     status === "working"
       ? msToClock(netMs)
@@ -44,12 +55,13 @@ export default function Command() {
         : isVacation
           ? "Vacation"
           : "Off";
-  const delta = netMs - (isVacation ? 0 : targetHours * 3600 * 1000);
+  const delta = netMs - targetMs;
 
   return (
     <MenuBarExtra icon={icon} title={title} tooltip={`Delta: ${formatDelta(delta)}`}>
       <MenuBarExtra.Item title={`Status: ${status}`} />
       <MenuBarExtra.Item title={`Live: ${title}`} />
+      {workEnd ? <MenuBarExtra.Item title={`Estimated work end: ${formatTimeAt(workEnd)}`} /> : null}
       {isVacation ? <MenuBarExtra.Item title="Vacation Day" /> : null}
       <MenuBarExtra.Item title={`Delta: ${formatDelta(delta)}`} />
     </MenuBarExtra>

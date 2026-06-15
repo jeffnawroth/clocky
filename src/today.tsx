@@ -1,7 +1,7 @@
 import { List, ActionPanel, Action, Icon } from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getTargetConfig, getVacationDays } from "./storage";
-import { dayKey, formatDelta, formatTime, getDaySummary, msToClock } from "./utils";
+import { dayKey, formatDelta, formatTime, formatTimeAt, getDaySummary, getEstimatedWorkEnd, msToClock } from "./utils";
 import { Session } from "./types";
 
 export default function Command() {
@@ -33,14 +33,16 @@ export default function Command() {
   const isVacation = vacationDays.includes(dayKey(now));
   const targetMs = isVacation ? 0 : targetHours * 3600 * 1000;
   const delta = totals.net - targetMs;
+  const activeSlice = slices.find((slice) => !slice.session.end);
+  const workEnd = activeSlice ? getEstimatedWorkEnd(now, totals.net, targetMs, isVacation) : null;
 
   return (
     <List>
       <List.Section
         title={`Today - ${msToClock(totals.net)} net`}
         subtitle={`Work ${msToClock(totals.work)} | Breaks ${msToClock(totals.breaks)} | Delta ${formatDelta(delta)}${
-          isVacation ? " | Vacation" : ""
-        }`}
+          workEnd ? ` | Estimated end: ${formatTimeAt(workEnd)}` : ""
+        }${isVacation ? " | Vacation" : ""}`}
       >
         {slices.map((slice) => {
           const session = slice.session;

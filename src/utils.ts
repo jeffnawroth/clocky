@@ -48,6 +48,15 @@ export function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+export function formatTimeAt(date: Date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export function getEstimatedWorkEnd(now: Date, netMs: number, targetMs: number, isVacation = false) {
+  if (isVacation || targetMs <= 0) return null;
+  return new Date(now.getTime() + Math.max(0, targetMs - netMs));
+}
+
 export function formatDayLabel(date: Date) {
   return date.toLocaleDateString([], { weekday: "short", month: "short", day: "2-digit" });
 }
