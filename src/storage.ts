@@ -1,9 +1,9 @@
 import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import { Session } from "./types";
 
-const SESSIONS_KEY = "chrono.sessions";
-const TARGET_KEY = "chrono.targetHours";
-const VACATION_KEY = "chrono.vacationDays";
+const SESSIONS_KEY = "clocky.sessions";
+const TARGET_KEY = "clocky.targetHours";
+const VACATION_KEY = "clocky.vacationDays";
 
 type TargetConfig = {
   targetHours: number;
