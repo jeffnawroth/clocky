@@ -1,12 +1,19 @@
 import { LocalStorage, getPreferenceValues } from "@raycast/api";
-import { Session } from "./types";
+import { Session, StatusState } from "./types";
 
 const SESSIONS_KEY = "clocky.sessions";
 const VACATION_KEY = "clocky.vacationDays";
+const STATUS_STATE_KEY = "clocky.status.state";
+const STATUS_LAST_SEEN_KEY = "clocky.status.lastSeenIso";
 
 type TargetConfig = {
   targetHours: number;
   workDaysPerWeek: number;
+};
+
+type ForgotThresholds = {
+  forgotClockOutMs: number;
+  forgotClockInMs: number;
 };
 
 function toNumber(value: unknown) {
@@ -73,4 +80,52 @@ export async function toggleVacationDay(dayKey: string): Promise<string[]> {
   const list = Array.from(next).sort();
   await saveVacationDays(list);
   return list;
+}
+
+const DEFAULT_FORGOT_CLOCK_OUT_MINUTES = 15;
+const DEFAULT_FORGOT_CLOCK_IN_MINUTES = 30;
+
+function minutesToMs(value: unknown, defaultMinutes: number): number {
+  const minutes = toNumber(value);
+  return (minutes && minutes > 0 ? minutes : defaultMinutes) * 60 * 1000;
+}
+
+export async function getForgotThresholds(): Promise<ForgotThresholds> {
+  try {
+    const prefs = getPreferenceValues() as {
+      forgotClockOutThresholdMinutes?: number | string;
+      forgotClockInThresholdMinutes?: number | string;
+    };
+    return {
+      forgotClockOutMs: minutesToMs(prefs?.forgotClockOutThresholdMinutes, DEFAULT_FORGOT_CLOCK_OUT_MINUTES),
+      forgotClockInMs: minutesToMs(prefs?.forgotClockInThresholdMinutes, DEFAULT_FORGOT_CLOCK_IN_MINUTES),
+    };
+  } catch {
+    return {
+      forgotClockOutMs: DEFAULT_FORGOT_CLOCK_OUT_MINUTES * 60 * 1000,
+      forgotClockInMs: DEFAULT_FORGOT_CLOCK_IN_MINUTES * 60 * 1000,
+    };
+  }
+}
+
+export async function getStatusState(): Promise<StatusState> {
+  const raw = await LocalStorage.getItem<string>(STATUS_STATE_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as StatusState;
+  } catch {
+    return {};
+  }
+}
+
+export async function saveStatusState(state: StatusState) {
+  await LocalStorage.setItem(STATUS_STATE_KEY, JSON.stringify(state));
+}
+
+export async function getStatusLastSeenIso(): Promise<string | undefined> {
+  return (await LocalStorage.getItem<string>(STATUS_LAST_SEEN_KEY)) ?? undefined;
+}
+
+export async function saveStatusLastSeenIso(iso: string) {
+  await LocalStorage.setItem(STATUS_LAST_SEEN_KEY, iso);
 }

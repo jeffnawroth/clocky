@@ -4,6 +4,10 @@ export function isoNow() {
   return new Date().toISOString();
 }
 
+export function newSessionId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export function msBetween(aIso: string, bIso: string): number {
   return new Date(bIso).getTime() - new Date(aIso).getTime();
 }
@@ -208,6 +212,58 @@ export function isPauseWithinSession(
 function pausesOverlap(aStart: Date, aEnd: Date | null, bStart: Date, bEnd: Date | null, nowIso?: string): boolean {
   const now = nowIso ? new Date(nowIso) : new Date();
   return overlapMs(aStart, aEnd ?? now, bStart, bEnd ?? now) > 0;
+}
+
+export function detectTickGapMs(lastTickIso: string, nowIso: string): number {
+  return msBetween(lastTickIso, nowIso);
+}
+
+export type ForgotClockOutSuggestion = {
+  shouldFlag: boolean;
+  suggestedEndIso: string;
+};
+
+export function getForgotClockOutSuggestion(
+  activeSession: Session | undefined,
+  lastTickIso: string,
+  nowIso: string,
+  thresholdMs: number,
+): ForgotClockOutSuggestion | null {
+  if (!activeSession) return null;
+  const gapMs = detectTickGapMs(lastTickIso, nowIso);
+  const startedBeforeGap = new Date(activeSession.start).getTime() <= new Date(lastTickIso).getTime();
+  const shouldFlag = startedBeforeGap && gapMs >= thresholdMs;
+  return { shouldFlag, suggestedEndIso: lastTickIso };
+}
+
+export type ForgotClockInSuggestion = {
+  shouldFlag: boolean;
+};
+
+export function getForgotClockInSuggestion(
+  activeSession: Session | undefined,
+  awakeSinceIso: string,
+  nowIso: string,
+  thresholdMs: number,
+): ForgotClockInSuggestion | null {
+  if (activeSession) return null;
+  const awakeMs = msBetween(awakeSinceIso, nowIso);
+  return { shouldFlag: awakeMs >= thresholdMs };
+}
+
+export function closeSessionAt(session: Session, endIso: string) {
+  session.end = endIso;
+  const openPause = session.pauses?.find((pause) => !pause.end);
+  if (openPause) openPause.end = endIso;
+}
+
+export function isStatusCommandStale(
+  lastSeenIso: string | undefined,
+  nowIso: string,
+  staleAfterMs = 5 * 60 * 1000,
+): boolean {
+  if (!lastSeenIso) return true;
+  return msBetween(lastSeenIso, nowIso) >= staleAfterMs;
 }
 
 export function hasOverlappingPause(

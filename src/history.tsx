@@ -23,6 +23,7 @@ import {
   isPauseWithinSession,
   msBetween,
   msToClock,
+  newSessionId,
 } from "./utils";
 
 type SessionFormValues = {
@@ -34,10 +35,6 @@ type PauseFormValues = {
   start: Date;
   end?: Date;
 };
-
-function newSessionId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 export default function Command() {
   const [sessions, setSessions] = useState<Session[]>([]);

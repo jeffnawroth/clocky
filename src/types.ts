@@ -9,3 +9,16 @@ export type Session = {
   end?: string; // ISO
   pauses?: Pause[];
 };
+
+export type PendingGapSuggestion = {
+  sessionId: string;
+  suggestedEndIso: string;
+};
+
+export type StatusState = {
+  lastTickIso?: string;
+  awakeSinceIso?: string;
+  dismissedGapKey?: string;
+  dismissedAwakeKey?: string;
+  pendingGap?: PendingGapSuggestion;
+};

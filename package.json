@@ -31,6 +31,24 @@
       "required": false,
       "placeholder": "5",
       "description": "How many days you typically work each week."
+    },
+    {
+      "name": "forgotClockOutThresholdMinutes",
+      "title": "Forgot Clock Out After (minutes)",
+      "type": "textfield",
+      "default": "15",
+      "required": false,
+      "placeholder": "15",
+      "description": "How long the computer must have been asleep before Status suggests you forgot to clock out."
+    },
+    {
+      "name": "forgotClockInThresholdMinutes",
+      "title": "Forgot Clock In After (minutes)",
+      "type": "textfield",
+      "default": "30",
+      "required": false,
+      "placeholder": "30",
+      "description": "How long you can be awake without an active session before Status suggests you forgot to clock in."
     }
   ],
   "commands": [

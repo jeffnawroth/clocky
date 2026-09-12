@@ -1,6 +1,6 @@
 import { List, ActionPanel, Action, Icon } from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
-import { getSessions, getTargetConfig, getVacationDays } from "./storage";
+import { getSessions, getStatusLastSeenIso, getTargetConfig, getVacationDays } from "./storage";
 import {
   dayKey,
   formatDayLabel,
@@ -9,6 +9,7 @@ import {
   formatTimeAt,
   getDaySummary,
   getEstimatedWorkEnd,
+  isStatusCommandStale,
   msToClock,
   sameDay,
 } from "./utils";
@@ -20,14 +21,21 @@ export default function Command() {
   const [vacationDays, setVacationDays] = useState<string[]>([]);
   const [now, setNow] = useState(new Date());
   const [referenceDate, setReferenceDate] = useState(new Date());
+  const [showStatusHint, setShowStatusHint] = useState(false);
   useEffect(() => {
     let mounted = true;
     const refresh = async () => {
-      const [all, target, vacations] = await Promise.all([getSessions(), getTargetConfig(), getVacationDays()]);
+      const [all, target, vacations, statusLastSeenIso] = await Promise.all([
+        getSessions(),
+        getTargetConfig(),
+        getVacationDays(),
+        getStatusLastSeenIso(),
+      ]);
       if (!mounted) return;
       setSessions(all);
       setTargetHours(target.targetHours);
       setVacationDays(vacations);
+      setShowStatusHint(isStatusCommandStale(statusLastSeenIso, new Date().toISOString()));
     };
     refresh();
     const refreshTimer = setInterval(refresh, 15000);
@@ -80,7 +88,9 @@ export default function Command() {
         title={sectionTitle}
         subtitle={`Work ${msToClock(totals.work)} | Breaks ${msToClock(totals.breaks)} | Delta ${formatDelta(delta)}${
           workEnd ? ` | Estimated end: ${formatTimeAt(workEnd)}` : ""
-        }${isVacation ? " | Vacation" : ""}`}
+        }${isVacation ? " | Vacation" : ""}${
+          showStatusHint ? " | Enable Status in your menu bar for forgotten clock-in/out detection" : ""
+        }`}
       >
         {slices.map((slice) => {
           const session = slice.session;

@@ -1,7 +1,7 @@
 import { Detail, ActionPanel, Action, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { getSessions, saveSessions } from "./storage";
-import { formatTime, getActiveSession, getWorkAndBreak, isoNow, msToClock } from "./utils";
+import { closeSessionAt, formatTime, getActiveSession, getWorkAndBreak, isoNow, msToClock } from "./utils";
 import { Session } from "./types";
 
 export default function Command() {
@@ -23,9 +23,7 @@ export default function Command() {
       return;
     }
     const endIso = isoNow();
-    activeSession.end = endIso;
-    const openPause = activeSession.pauses?.find((pause) => !pause.end);
-    if (openPause) openPause.end = endIso;
+    closeSessionAt(activeSession, endIso);
     await saveSessions(sessions);
     const totals = getWorkAndBreak(activeSession, endIso);
     setSummary({ work: totals.totalWork, breaks: totals.breaks, net: totals.net });

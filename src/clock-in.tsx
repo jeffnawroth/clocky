@@ -1,8 +1,18 @@
 import { Detail, ActionPanel, Action, showToast, Toast } from "@raycast/api";
-import { getSessions, saveSessions } from "./storage";
-import { getActiveSession, isoNow } from "./utils";
+import { useEffect, useState } from "react";
+import { getSessions, getStatusLastSeenIso, saveSessions } from "./storage";
+import { getActiveSession, isStatusCommandStale, isoNow, newSessionId } from "./utils";
 
 export default function Command() {
+  const [showStatusHint, setShowStatusHint] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const lastSeenIso = await getStatusLastSeenIso();
+      setShowStatusHint(isStatusCommandStale(lastSeenIso, isoNow()));
+    })();
+  }, []);
+
   const start = async () => {
     const sessions = await getSessions();
     const active = getActiveSession(sessions);
@@ -10,9 +20,7 @@ export default function Command() {
       await showToast(Toast.Style.Failure, "Already clocked in");
       return;
     }
-    const id =
-      globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-    const session = { id, start: isoNow(), pauses: [] };
+    const session = { id: newSessionId(), start: isoNow(), pauses: [] };
     sessions.push(session);
     await saveSessions(sessions);
     await showToast(Toast.Style.Success, "Clocked in");
@@ -22,7 +30,11 @@ export default function Command() {
     <Detail
       markdown={`# Clock In
 
-Start a new work session.`}
+Start a new work session.${
+        showStatusHint
+          ? "\n\n---\n\n_Enable the **Status** command in your menu bar to get notified about forgotten clock-ins/outs._"
+          : ""
+      }`}
       actions={
         <ActionPanel>
           <Action title="Start Session" onAction={start} />

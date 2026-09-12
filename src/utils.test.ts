@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectTickGapMs,
   getDaySummary,
+  getForgotClockInSuggestion,
+  getForgotClockOutSuggestion,
   getVisibleWeekDays,
   hasAnotherOpenSession,
   hasOverlappingPause,
@@ -146,5 +149,101 @@ describe("hasOverlappingPause", () => {
         "2026-09-07T10:00:00.000Z",
       ),
     ).toBe(true);
+  });
+});
+
+describe("detectTickGapMs", () => {
+  it("returns the millisecond difference between two ISO timestamps", () => {
+    expect(detectTickGapMs("2026-09-07T09:00:00.000Z", "2026-09-07T09:00:20.000Z")).toBe(20_000);
+  });
+
+  it("returns 0 for identical timestamps", () => {
+    expect(detectTickGapMs("2026-09-07T09:00:00.000Z", "2026-09-07T09:00:00.000Z")).toBe(0);
+  });
+});
+
+describe("getForgotClockOutSuggestion", () => {
+  const thresholdMs = 15 * 60 * 1000; // 15 minutes
+  const lastTickIso = "2026-09-07T12:00:00.000Z";
+  const nowIso = "2026-09-07T12:20:00.000Z"; // 20 minute gap
+
+  const openSession = (start: string): Session => ({ id: "a", start });
+
+  it("returns null when there is no active session", () => {
+    expect(getForgotClockOutSuggestion(undefined, lastTickIso, nowIso, thresholdMs)).toBeNull();
+  });
+
+  it("flags when the session started before the gap and the gap meets the threshold", () => {
+    const result = getForgotClockOutSuggestion(
+      openSession("2026-09-07T08:00:00.000Z"),
+      lastTickIso,
+      nowIso,
+      thresholdMs,
+    );
+    expect(result).toEqual({ shouldFlag: true, suggestedEndIso: lastTickIso });
+  });
+
+  it("flags when the gap exactly equals the threshold", () => {
+    const exactNowIso = "2026-09-07T12:15:00.000Z"; // exactly 15 minutes after lastTickIso
+    const result = getForgotClockOutSuggestion(
+      openSession("2026-09-07T08:00:00.000Z"),
+      lastTickIso,
+      exactNowIso,
+      thresholdMs,
+    );
+    expect(result?.shouldFlag).toBe(true);
+  });
+
+  it("does not flag when the gap is below the threshold", () => {
+    const shortNowIso = "2026-09-07T12:05:00.000Z"; // 5 minute gap
+    const result = getForgotClockOutSuggestion(
+      openSession("2026-09-07T08:00:00.000Z"),
+      lastTickIso,
+      shortNowIso,
+      thresholdMs,
+    );
+    expect(result?.shouldFlag).toBe(false);
+  });
+
+  it("does not flag when the session started after the last tick (opened during/after the gap)", () => {
+    const result = getForgotClockOutSuggestion(
+      openSession("2026-09-07T12:10:00.000Z"), // started after lastTickIso, inside the gap
+      lastTickIso,
+      nowIso,
+      thresholdMs,
+    );
+    expect(result?.shouldFlag).toBe(false);
+  });
+});
+
+describe("getForgotClockInSuggestion", () => {
+  const thresholdMs = 30 * 60 * 1000; // 30 minutes
+  const awakeSinceIso = "2026-09-07T09:00:00.000Z";
+
+  const openSession = (start: string): Session => ({ id: "a", start });
+
+  it("returns null when a session is already active", () => {
+    const result = getForgotClockInSuggestion(
+      openSession("2026-09-07T09:00:00.000Z"),
+      awakeSinceIso,
+      "2026-09-07T09:40:00.000Z",
+      thresholdMs,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("flags when no session is active and the elapsed time meets the threshold", () => {
+    const result = getForgotClockInSuggestion(undefined, awakeSinceIso, "2026-09-07T09:31:00.000Z", thresholdMs);
+    expect(result).toEqual({ shouldFlag: true });
+  });
+
+  it("flags when the elapsed time exactly equals the threshold", () => {
+    const result = getForgotClockInSuggestion(undefined, awakeSinceIso, "2026-09-07T09:30:00.000Z", thresholdMs);
+    expect(result?.shouldFlag).toBe(true);
+  });
+
+  it("does not flag when the elapsed time is below the threshold", () => {
+    const result = getForgotClockInSuggestion(undefined, awakeSinceIso, "2026-09-07T09:10:00.000Z", thresholdMs);
+    expect(result?.shouldFlag).toBe(false);
   });
 });
