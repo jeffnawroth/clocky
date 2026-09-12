@@ -2,7 +2,6 @@ import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import { Session } from "./types";
 
 const SESSIONS_KEY = "clocky.sessions";
-const TARGET_KEY = "clocky.targetHours";
 const VACATION_KEY = "clocky.vacationDays";
 
 type TargetConfig = {
@@ -43,23 +42,10 @@ export async function getTargetConfig(): Promise<TargetConfig> {
     if (weeklyHours && weeklyHours > 0) {
       return { targetHours: weeklyHours / workDaysPerWeek, workDaysPerWeek };
     }
-    const raw = await LocalStorage.getItem<number>(TARGET_KEY);
-    if (raw) return { targetHours: raw, workDaysPerWeek };
     return { targetHours: 8, workDaysPerWeek };
   } catch {
-    const raw = await LocalStorage.getItem<number>(TARGET_KEY);
-    if (raw) return { targetHours: raw, workDaysPerWeek: 5 };
     return { targetHours: 8, workDaysPerWeek: 5 };
   }
-}
-
-export async function getTargetHours(): Promise<number> {
-  const config = await getTargetConfig();
-  return config.targetHours;
-}
-
-export async function setTargetHours(hours: number) {
-  await LocalStorage.setItem(TARGET_KEY, hours);
 }
 
 export async function getVacationDays(): Promise<string[]> {

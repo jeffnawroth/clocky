@@ -1,3 +1,3 @@
-# Chrono Changelog
+# Clocky Changelog
 
 ## [Initial Version] - {PR_MERGE_DATE}

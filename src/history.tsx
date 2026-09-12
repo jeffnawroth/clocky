@@ -13,7 +13,17 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVacationDays, saveSessions, toggleVacationDay } from "./storage";
 import { Pause, Session } from "./types";
-import { dayKeyFromIso, formatDayLabel, formatTime, getWorkAndBreak, msBetween, msToClock } from "./utils";
+import {
+  dayKeyFromIso,
+  formatDayLabel,
+  formatTime,
+  getWorkAndBreak,
+  hasAnotherOpenSession,
+  hasOverlappingPause,
+  isPauseWithinSession,
+  msBetween,
+  msToClock,
+} from "./utils";
 
 type SessionFormValues = {
   start: Date;
@@ -70,21 +80,30 @@ export default function Command() {
     return list;
   }, [sessions, vacationDays]);
 
-  const addSession = async (values: SessionFormValues) => {
+  const addSession = async (values: SessionFormValues): Promise<boolean> => {
     const updated = await getSessions();
+    if (!values.end && hasAnotherOpenSession(updated)) {
+      await showToast(Toast.Style.Failure, "Another session is already open");
+      return false;
+    }
     updated.push({ id: newSessionId(), start: values.start.toISOString(), end: values.end?.toISOString(), pauses: [] });
     updated.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
     await saveSessions(updated);
     setSessions(updated);
     await showToast(Toast.Style.Success, "Session added");
+    return true;
   };
 
-  const updateSession = async (id: string, values: SessionFormValues) => {
+  const updateSession = async (id: string, values: SessionFormValues): Promise<boolean> => {
     const updated = await getSessions();
     const session = updated.find((s) => s.id === id);
     if (!session) {
       await showToast(Toast.Style.Failure, "Session not found");
-      return;
+      return false;
+    }
+    if (!values.end && hasAnotherOpenSession(updated, id)) {
+      await showToast(Toast.Style.Failure, "Another session is already open");
+      return false;
     }
     session.start = values.start.toISOString();
     session.end = values.end ? values.end.toISOString() : undefined;
@@ -93,6 +112,7 @@ export default function Command() {
     await saveSessions(updated);
     setSessions(updated);
     await showToast(Toast.Style.Success, "Session updated");
+    return true;
   };
 
   const deleteSession = async (id: string) => {
@@ -214,7 +234,7 @@ function SessionForm({
 }: {
   title: string;
   initial?: Session;
-  onSave: (values: SessionFormValues) => Promise<void>;
+  onSave: (values: SessionFormValues) => Promise<boolean>;
 }) {
   const { pop } = useNavigation();
   const [start, setStart] = useState<Date>(initial ? new Date(initial.start) : new Date());
@@ -226,8 +246,8 @@ function SessionForm({
       await showToast(Toast.Style.Failure, "End time must be after start time");
       return;
     }
-    await onSave({ start, end: hasEnd ? end : undefined });
-    pop();
+    const success = await onSave({ start, end: hasEnd ? end : undefined });
+    if (success) pop();
   };
 
   return (
@@ -291,23 +311,50 @@ function PauseList({ sessionId, onRefresh }: { sessionId: string; onRefresh: () 
     await load();
   };
 
-  const addPause = async (values: PauseFormValues) => {
-    if (!session) return;
-    const next = [...(session.pauses ?? [])];
-    next.push({ start: values.start.toISOString(), end: values.end?.toISOString() });
+  const addPause = async (values: PauseFormValues): Promise<boolean> => {
+    if (!session) return false;
+    const sessionStart = new Date(session.start);
+    const sessionEnd = session.end ? new Date(session.end) : null;
+    const pauseEnd = values.end ?? null;
+    if (!isPauseWithinSession(sessionStart, sessionEnd, values.start, pauseEnd)) {
+      await showToast(Toast.Style.Failure, "Pause must be within the session's time span");
+      return false;
+    }
+    const existing = session.pauses ?? [];
+    const overlaps = hasOverlappingPause(existing, values.start, pauseEnd);
+    const next = [...existing, { start: values.start.toISOString(), end: values.end?.toISOString() }];
     next.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     await saveSessionPauses(next);
-    await showToast(Toast.Style.Success, "Pause added");
+    if (overlaps) {
+      await showToast(Toast.Style.Success, "Pause added", "Overlaps with another pause");
+    } else {
+      await showToast(Toast.Style.Success, "Pause added");
+    }
+    return true;
   };
 
-  const updatePause = async (index: number, values: PauseFormValues) => {
-    if (!session) return;
-    const next = [...(session.pauses ?? [])];
-    if (!next[index]) return;
+  const updatePause = async (index: number, values: PauseFormValues): Promise<boolean> => {
+    if (!session) return false;
+    const existing = session.pauses ?? [];
+    if (!existing[index]) return false;
+    const sessionStart = new Date(session.start);
+    const sessionEnd = session.end ? new Date(session.end) : null;
+    const pauseEnd = values.end ?? null;
+    if (!isPauseWithinSession(sessionStart, sessionEnd, values.start, pauseEnd)) {
+      await showToast(Toast.Style.Failure, "Pause must be within the session's time span");
+      return false;
+    }
+    const overlaps = hasOverlappingPause(existing, values.start, pauseEnd, index);
+    const next = [...existing];
     next[index] = { start: values.start.toISOString(), end: values.end?.toISOString() };
     next.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     await saveSessionPauses(next);
-    await showToast(Toast.Style.Success, "Pause updated");
+    if (overlaps) {
+      await showToast(Toast.Style.Success, "Pause updated", "Overlaps with another pause");
+    } else {
+      await showToast(Toast.Style.Success, "Pause updated");
+    }
+    return true;
   };
 
   const deletePause = async (index: number) => {
@@ -393,7 +440,7 @@ function PauseForm({
 }: {
   title: string;
   initial?: Pause;
-  onSave: (values: PauseFormValues) => Promise<void>;
+  onSave: (values: PauseFormValues) => Promise<boolean>;
 }) {
   const { pop } = useNavigation();
   const [start, setStart] = useState<Date>(initial ? new Date(initial.start) : new Date());
@@ -405,8 +452,8 @@ function PauseForm({
       await showToast(Toast.Style.Failure, "End time must be after start time");
       return;
     }
-    await onSave({ start, end: hasEnd ? end : undefined });
-    pop();
+    const success = await onSave({ start, end: hasEnd ? end : undefined });
+    if (success) pop();
   };
 
   return (

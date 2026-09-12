@@ -43,7 +43,7 @@ export default function Command() {
     <Detail
       markdown={`# Clock Out
 
-    End the active work session and show a summary.\n\n${summaryMarkdown}`}
+End the active work session and show a summary.\n\n${summaryMarkdown}`}
       actions={
         <ActionPanel>
           <Action title="End Session" onAction={endSession} />

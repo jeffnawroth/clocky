@@ -177,3 +177,54 @@ export function sameDay(aIso: string, b = new Date()) {
   const a = new Date(aIso);
   return a.toDateString() === b.toDateString();
 }
+
+export function getVisibleWeekDays(weekStart: Date, workDaysPerWeek: number): Date[] {
+  const rawCount = Number.isFinite(workDaysPerWeek) ? workDaysPerWeek : 7;
+  const count = Math.min(7, Math.max(1, Math.floor(rawCount)));
+  const start = startOfDay(weekStart);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return eachDayOfInterval(start, end).slice(0, count);
+}
+
+export function hasAnotherOpenSession(sessions: Session[], excludeId?: string): boolean {
+  return sessions.some((session) => session.id !== excludeId && !session.end);
+}
+
+export function isPauseWithinSession(
+  sessionStart: Date,
+  sessionEnd: Date | null,
+  pauseStart: Date,
+  pauseEnd: Date | null,
+): boolean {
+  if (pauseStart.getTime() < sessionStart.getTime()) return false;
+  if (sessionEnd) {
+    if (pauseStart.getTime() > sessionEnd.getTime()) return false;
+    if (pauseEnd && pauseEnd.getTime() > sessionEnd.getTime()) return false;
+  }
+  return true;
+}
+
+function pausesOverlap(aStart: Date, aEnd: Date | null, bStart: Date, bEnd: Date | null, nowIso?: string): boolean {
+  const now = nowIso ? new Date(nowIso) : new Date();
+  return overlapMs(aStart, aEnd ?? now, bStart, bEnd ?? now) > 0;
+}
+
+export function hasOverlappingPause(
+  pauses: Pause[],
+  candidateStart: Date,
+  candidateEnd: Date | null,
+  excludeIndex?: number,
+  nowIso?: string,
+): boolean {
+  return pauses.some((pause, index) => {
+    if (index === excludeIndex) return false;
+    return pausesOverlap(
+      candidateStart,
+      candidateEnd,
+      new Date(pause.start),
+      pause.end ? new Date(pause.end) : null,
+      nowIso,
+    );
+  });
+}
