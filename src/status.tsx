@@ -74,7 +74,11 @@ export default function Command() {
         thresholdsRef.current.forgotClockOutMs,
       );
       if (suggestion?.shouldFlag && activeSession) {
-        patch.pendingGap = { sessionId: activeSession.id, suggestedEndIso: suggestion.suggestedEndIso };
+        patch.pendingGap = {
+          sessionId: activeSession.id,
+          suggestedEndIso: suggestion.suggestedEndIso,
+          gapMs: detectTickGapMs(previousTickIso, nowIso),
+        };
       }
       updateStatusState(patch);
     };
@@ -195,7 +199,7 @@ export default function Command() {
 
   const pendingGap = statusState.pendingGap;
   const showGapSuggestion = Boolean(pendingGap && statusState.dismissedGapKey !== pendingGap.suggestedEndIso);
-  const gapAwayMs = pendingGap ? msBetween(pendingGap.suggestedEndIso, nowIso) : 0;
+  const gapAwayMs = pendingGap?.gapMs ?? 0;
 
   const awakeSinceIso = statusState.awakeSinceIso ?? nowIso;
   const clockInSuggestion = getForgotClockInSuggestion(active, awakeSinceIso, nowIso, thresholds.forgotClockInMs);

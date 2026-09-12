@@ -13,6 +13,7 @@ export type Session = {
 export type PendingGapSuggestion = {
   sessionId: string;
   suggestedEndIso: string;
+  gapMs: number;
 };
 
 export type StatusState = {
