@@ -287,8 +287,9 @@ export function getForgotClockInSuggestion(
 
 export function closeSessionAt(session: Session, endIso: string) {
   session.end = endIso;
-  const openPause = session.pauses?.find((pause) => !pause.end);
-  if (openPause) openPause.end = endIso;
+  for (const pause of session.pauses ?? []) {
+    if (!pause.end) pause.end = endIso;
+  }
 }
 
 export function isStatusCommandStale(

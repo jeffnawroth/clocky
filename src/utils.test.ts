@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   allPausesWithinSession,
+  closeSessionAt,
   detectTickGapMs,
   getDaySummary,
   getForgotClockInSuggestion,
@@ -362,5 +363,54 @@ describe("getForgotClockInSuggestion", () => {
   it("does not flag when the elapsed time is below the threshold", () => {
     const result = getForgotClockInSuggestion(undefined, awakeSinceIso, "2026-09-07T09:10:00.000Z", thresholdMs);
     expect(result?.shouldFlag).toBe(false);
+  });
+});
+
+describe("closeSessionAt", () => {
+  const endIso = "2026-09-07T17:00:00.000Z";
+
+  it("closes every open pause on the session", () => {
+    const session: Session = {
+      id: "a",
+      start: "2026-09-07T09:00:00.000Z",
+      pauses: [
+        { start: "2026-09-07T10:00:00.000Z" },
+        { start: "2026-09-07T11:00:00.000Z", end: "2026-09-07T11:15:00.000Z" },
+        { start: "2026-09-07T12:00:00.000Z" },
+      ],
+    };
+    closeSessionAt(session, endIso);
+    expect(session.end).toBe(endIso);
+    expect(session.pauses?.[0].end).toBe(endIso);
+    expect(session.pauses?.[1].end).toBe("2026-09-07T11:15:00.000Z");
+    expect(session.pauses?.[2].end).toBe(endIso);
+  });
+
+  it("closes a single open pause, unchanged from prior behavior", () => {
+    const session: Session = {
+      id: "a",
+      start: "2026-09-07T09:00:00.000Z",
+      pauses: [{ start: "2026-09-07T10:00:00.000Z" }],
+    };
+    closeSessionAt(session, endIso);
+    expect(session.end).toBe(endIso);
+    expect(session.pauses?.[0].end).toBe(endIso);
+  });
+
+  it("does nothing to pauses when there are none open", () => {
+    const session: Session = {
+      id: "a",
+      start: "2026-09-07T09:00:00.000Z",
+      pauses: [{ start: "2026-09-07T10:00:00.000Z", end: "2026-09-07T10:15:00.000Z" }],
+    };
+    closeSessionAt(session, endIso);
+    expect(session.end).toBe(endIso);
+    expect(session.pauses?.[0].end).toBe("2026-09-07T10:15:00.000Z");
+  });
+
+  it("handles a session with no pauses", () => {
+    const session: Session = { id: "a", start: "2026-09-07T09:00:00.000Z" };
+    closeSessionAt(session, endIso);
+    expect(session.end).toBe(endIso);
   });
 });
