@@ -6,8 +6,7 @@
   "icon": "extension_icon.png",
   "author": "jeffnawroth",
   "platforms": [
-    "macOS",
-    "Windows"
+    "macOS"
   ],
   "categories": [
     "Productivity"
@@ -54,14 +53,14 @@
   "commands": [
     {
       "name": "clock-in",
-      "title": "Clock in",
+      "title": "Clock In",
       "subtitle": "Start working session",
       "description": "Starts tracking your work time and records your current session start.",
       "mode": "view"
     },
     {
       "name": "clock-out",
-      "title": "Clock out",
+      "title": "Clock Out",
       "subtitle": "End working session",
       "description": "Stops tracking and calculates your total working time including breaks and daily delta.",
       "mode": "view"
