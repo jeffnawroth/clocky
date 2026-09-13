@@ -182,9 +182,13 @@ export function sameDay(aIso: string, b = new Date()) {
   return a.toDateString() === b.toDateString();
 }
 
+export function normalizeWorkDays(value: number): number {
+  return Math.min(7, Math.max(1, Math.floor(value)));
+}
+
 export function getVisibleWeekDays(weekStart: Date, workDaysPerWeek: number): Date[] {
   const rawCount = Number.isFinite(workDaysPerWeek) ? workDaysPerWeek : 7;
-  const count = Math.min(7, Math.max(1, Math.floor(rawCount)));
+  const count = normalizeWorkDays(rawCount);
   const start = startOfDay(weekStart);
   const end = new Date(start);
   end.setDate(start.getDate() + 6);

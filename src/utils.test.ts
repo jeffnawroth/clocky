@@ -8,6 +8,7 @@ import {
   hasAnotherOpenSession,
   hasOverlappingPause,
   isPauseWithinSession,
+  normalizeWorkDays,
 } from "./utils";
 import { Session } from "./types";
 
@@ -51,6 +52,24 @@ describe("getVisibleWeekDays", () => {
   it("floors a fractional workDaysPerWeek", () => {
     const days = getVisibleWeekDays(monday, 5.9);
     expect(days).toHaveLength(5);
+  });
+});
+
+describe("normalizeWorkDays", () => {
+  it("passes whole numbers through unchanged", () => {
+    expect(normalizeWorkDays(3)).toBe(3);
+  });
+
+  it("floors fractional values", () => {
+    expect(normalizeWorkDays(5.9)).toBe(5);
+  });
+
+  it("clamps values above 7 down to 7", () => {
+    expect(normalizeWorkDays(10)).toBe(7);
+  });
+
+  it("clamps values below 1 up to 1", () => {
+    expect(normalizeWorkDays(0)).toBe(1);
   });
 });
 

@@ -1,5 +1,6 @@
 import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import { Session, StatusState } from "./types";
+import { normalizeWorkDays } from "./utils";
 
 const SESSIONS_KEY = "clocky.sessions";
 const VACATION_KEY = "clocky.vacationDays";
@@ -44,7 +45,7 @@ export async function getTargetConfig(): Promise<TargetConfig> {
   try {
     const prefs = getPreferenceValues() as { targetWeeklyHours?: number | string; workDaysPerWeek?: number | string };
     const prefDays = toNumber(prefs?.workDaysPerWeek);
-    const workDaysPerWeek = prefDays && prefDays > 0 ? prefDays : 5;
+    const workDaysPerWeek = normalizeWorkDays(prefDays && prefDays > 0 ? prefDays : 5);
     const weeklyHours = toNumber(prefs?.targetWeeklyHours);
     if (weeklyHours && weeklyHours > 0) {
       return { targetHours: weeklyHours / workDaysPerWeek, workDaysPerWeek };
