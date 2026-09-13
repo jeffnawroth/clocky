@@ -199,6 +199,25 @@ export function hasAnotherOpenSession(sessions: Session[], excludeId?: string): 
   return sessions.some((session) => session.id !== excludeId && !session.end);
 }
 
+export function hasOverlappingSession(
+  sessions: Session[],
+  candidateStart: Date,
+  candidateEnd: Date | null,
+  excludeId?: string,
+  nowIso?: string,
+): boolean {
+  return sessions.some((session) => {
+    if (session.id === excludeId) return false;
+    return rangesOverlap(
+      candidateStart,
+      candidateEnd,
+      new Date(session.start),
+      session.end ? new Date(session.end) : null,
+      nowIso,
+    );
+  });
+}
+
 export function isPauseWithinSession(
   sessionStart: Date,
   sessionEnd: Date | null,
@@ -213,7 +232,7 @@ export function isPauseWithinSession(
   return true;
 }
 
-function pausesOverlap(aStart: Date, aEnd: Date | null, bStart: Date, bEnd: Date | null, nowIso?: string): boolean {
+function rangesOverlap(aStart: Date, aEnd: Date | null, bStart: Date, bEnd: Date | null, nowIso?: string): boolean {
   const now = nowIso ? new Date(nowIso) : new Date();
   return overlapMs(aStart, aEnd ?? now, bStart, bEnd ?? now) > 0;
 }
@@ -279,7 +298,7 @@ export function hasOverlappingPause(
 ): boolean {
   return pauses.some((pause, index) => {
     if (index === excludeIndex) return false;
-    return pausesOverlap(
+    return rangesOverlap(
       candidateStart,
       candidateEnd,
       new Date(pause.start),

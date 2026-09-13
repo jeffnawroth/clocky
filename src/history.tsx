@@ -20,6 +20,7 @@ import {
   getWorkAndBreak,
   hasAnotherOpenSession,
   hasOverlappingPause,
+  hasOverlappingSession,
   isPauseWithinSession,
   msBetween,
   msToClock,
@@ -83,6 +84,10 @@ export default function Command() {
       await showToast(Toast.Style.Failure, "Another session is already open");
       return false;
     }
+    if (hasOverlappingSession(updated, values.start, values.end ?? null)) {
+      await showToast(Toast.Style.Failure, "Session overlaps another session");
+      return false;
+    }
     updated.push({ id: newSessionId(), start: values.start.toISOString(), end: values.end?.toISOString(), pauses: [] });
     updated.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
     await saveSessions(updated);
@@ -100,6 +105,10 @@ export default function Command() {
     }
     if (!values.end && hasAnotherOpenSession(updated, id)) {
       await showToast(Toast.Style.Failure, "Another session is already open");
+      return false;
+    }
+    if (hasOverlappingSession(updated, values.start, values.end ?? null, id)) {
+      await showToast(Toast.Style.Failure, "Session overlaps another session");
       return false;
     }
     session.start = values.start.toISOString();

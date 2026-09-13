@@ -7,6 +7,7 @@ import {
   getVisibleWeekDays,
   hasAnotherOpenSession,
   hasOverlappingPause,
+  hasOverlappingSession,
   isPauseWithinSession,
   normalizeWorkDays,
 } from "./utils";
@@ -168,6 +169,67 @@ describe("hasOverlappingPause", () => {
         "2026-09-07T10:00:00.000Z",
       ),
     ).toBe(true);
+  });
+});
+
+describe("hasOverlappingSession", () => {
+  const sessions: Session[] = [
+    { id: "a", start: "2026-09-07T09:00:00.000Z", end: "2026-09-07T10:00:00.000Z" },
+    { id: "b", start: "2026-09-07T12:00:00.000Z", end: "2026-09-07T13:00:00.000Z" },
+  ];
+
+  it("returns false when the candidate does not overlap any session", () => {
+    expect(
+      hasOverlappingSession(
+        sessions,
+        new Date("2026-09-07T10:30:00.000Z"),
+        new Date("2026-09-07T11:30:00.000Z"),
+      ),
+    ).toBe(false);
+  });
+
+  it("returns true when the candidate overlaps an existing closed session", () => {
+    expect(
+      hasOverlappingSession(
+        sessions,
+        new Date("2026-09-07T09:30:00.000Z"),
+        new Date("2026-09-07T09:45:00.000Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("treats the currently open session's missing end as now", () => {
+    const withOpen: Session[] = [...sessions, { id: "c", start: "2026-09-07T14:00:00.000Z" }];
+    expect(
+      hasOverlappingSession(
+        withOpen,
+        new Date("2026-09-07T14:30:00.000Z"),
+        new Date("2026-09-07T15:00:00.000Z"),
+        undefined,
+        "2026-09-07T16:00:00.000Z",
+      ),
+    ).toBe(true);
+  });
+
+  it("excludes the session being edited from the check", () => {
+    expect(
+      hasOverlappingSession(
+        sessions,
+        new Date("2026-09-07T09:30:00.000Z"),
+        new Date("2026-09-07T09:45:00.000Z"),
+        "a",
+      ),
+    ).toBe(false);
+  });
+
+  it("does not treat sessions that only touch at a shared boundary as overlapping", () => {
+    expect(
+      hasOverlappingSession(
+        sessions,
+        new Date("2026-09-07T10:00:00.000Z"),
+        new Date("2026-09-07T12:00:00.000Z"),
+      ),
+    ).toBe(false);
   });
 });
 
