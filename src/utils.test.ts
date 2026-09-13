@@ -210,6 +210,19 @@ describe("hasOverlappingPause", () => {
       ),
     ).toBe(true);
   });
+
+  it("treats a second open pause as overlapping an existing open pause", () => {
+    const openPauses = [{ start: "2026-09-07T09:00:00.000Z" }];
+    expect(
+      hasOverlappingPause(
+        openPauses,
+        new Date("2026-09-07T09:15:00.000Z"),
+        null,
+        undefined,
+        "2026-09-07T10:00:00.000Z",
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("hasOverlappingSession", () => {

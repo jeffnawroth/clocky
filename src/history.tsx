@@ -332,15 +332,14 @@ function PauseList({ sessionId, onRefresh }: { sessionId: string; onRefresh: () 
       return false;
     }
     const existing = session.pauses ?? [];
-    const overlaps = hasOverlappingPause(existing, values.start, pauseEnd);
+    if (hasOverlappingPause(existing, values.start, pauseEnd)) {
+      await showToast(Toast.Style.Failure, "Pause overlaps another pause");
+      return false;
+    }
     const next = [...existing, { start: values.start.toISOString(), end: values.end?.toISOString() }];
     next.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     await saveSessionPauses(next);
-    if (overlaps) {
-      await showToast(Toast.Style.Success, "Pause added", "Overlaps with another pause");
-    } else {
-      await showToast(Toast.Style.Success, "Pause added");
-    }
+    await showToast(Toast.Style.Success, "Pause added");
     return true;
   };
 
@@ -355,16 +354,15 @@ function PauseList({ sessionId, onRefresh }: { sessionId: string; onRefresh: () 
       await showToast(Toast.Style.Failure, "Pause must be within the session's time span");
       return false;
     }
-    const overlaps = hasOverlappingPause(existing, values.start, pauseEnd, index);
+    if (hasOverlappingPause(existing, values.start, pauseEnd, index)) {
+      await showToast(Toast.Style.Failure, "Pause overlaps another pause");
+      return false;
+    }
     const next = [...existing];
     next[index] = { start: values.start.toISOString(), end: values.end?.toISOString() };
     next.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     await saveSessionPauses(next);
-    if (overlaps) {
-      await showToast(Toast.Style.Success, "Pause updated", "Overlaps with another pause");
-    } else {
-      await showToast(Toast.Style.Success, "Pause updated");
-    }
+    await showToast(Toast.Style.Success, "Pause updated");
     return true;
   };
 
