@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVacationDays, saveSessions, toggleVacationDay } from "./storage";
 import { Pause, Session } from "./types";
 import {
+  allPausesWithinSession,
   dayKeyFromIso,
   formatDayLabel,
   formatTime,
@@ -109,6 +110,10 @@ export default function Command() {
     }
     if (hasOverlappingSession(updated, values.start, values.end ?? null, id)) {
       await showToast(Toast.Style.Failure, "Session overlaps another session");
+      return false;
+    }
+    if (!allPausesWithinSession(session.pauses, values.start, values.end ?? null)) {
+      await showToast(Toast.Style.Failure, "Pause would fall outside the session", "Adjust or delete the pause first");
       return false;
     }
     session.start = values.start.toISOString();

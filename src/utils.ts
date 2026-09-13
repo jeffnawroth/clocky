@@ -232,6 +232,17 @@ export function isPauseWithinSession(
   return true;
 }
 
+export function allPausesWithinSession(
+  pauses: Pause[] | undefined,
+  sessionStart: Date,
+  sessionEnd: Date | null,
+): boolean {
+  if (!pauses || pauses.length === 0) return true;
+  return pauses.every((pause) =>
+    isPauseWithinSession(sessionStart, sessionEnd, new Date(pause.start), pause.end ? new Date(pause.end) : null),
+  );
+}
+
 function rangesOverlap(aStart: Date, aEnd: Date | null, bStart: Date, bEnd: Date | null, nowIso?: string): boolean {
   const now = nowIso ? new Date(nowIso) : new Date();
   return overlapMs(aStart, aEnd ?? now, bStart, bEnd ?? now) > 0;
