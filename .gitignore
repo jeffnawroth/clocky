@@ -12,3 +12,8 @@ compiled_raycast_rust
 
 # misc
 .DS_Store
+
+# Agent/planning docs (kept locally, not shipped to the Raycast Store)
+CLAUDE.md
+CONTEXT.md
+/docs
